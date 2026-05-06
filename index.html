@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Streak">
+<meta name="theme-color" content="#0d1117">
+<title>Streak</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0d1117;--s1:#161b22;--s2:#21262d;
+  --accent:#3fb950;--accent-dim:rgba(63,185,80,0.12);--accent-mid:rgba(63,185,80,0.35);
+  --blue:#388bfd;--blue-dim:rgba(56,139,253,0.12);--blue-mid:rgba(56,139,253,0.35);
+  --purple:#bc8cff;--purple-dim:rgba(188,140,255,0.12);
+  --orange:#f0883e;--orange-dim:rgba(240,136,62,0.12);--orange-mid:rgba(240,136,62,0.35);
+  --text:#e6edf3;--muted:#7d8590;--border:rgba(255,255,255,0.08);
+  --fail:#f85149;--warn:#e3b341;--radius:16px;--radius-sm:10px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;overflow:hidden}
+body{display:flex;flex-direction:column;max-width:430px;margin:0 auto}
+.header{padding:52px 20px 16px;flex-shrink:0}
+.header-top{display:flex;justify-content:space-between;align-items:flex-start}
+.greeting{font-size:13px;color:var(--muted);font-weight:500;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px}
+.date-str{font-size:28px;font-weight:700;line-height:1}
+.score-pill{background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--muted);transition:all .3s}
+.score-pill.perfect{background:var(--accent-dim);border-color:var(--accent-mid);color:var(--accent)}
+.nav{flex-shrink:0;display:flex;padding:0 20px 8px;gap:4px;border-bottom:1px solid var(--border)}
+.nav-btn{flex:1;padding:8px;border:none;background:none;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;border-radius:var(--radius-sm);transition:all .2s}
+.nav-btn.active{color:var(--accent);background:var(--accent-dim)}
+.scroll{flex:1;overflow-y:auto;padding:16px 20px 100px;-webkit-overflow-scrolling:touch}
+.scroll::-webkit-scrollbar{display:none}
+
+/* HABIT CARDS */
+.habit-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:12px;transition:all .25s}
+.habit-card.done{border-color:var(--accent-mid);background:var(--accent-dim)}
+.habit-card.rest-done{border-color:rgba(125,133,144,0.35);background:rgba(125,133,144,0.07)}
+.habit-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.habit-icon{width:40px;height:40px;border-radius:12px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.habit-title{font-size:16px;font-weight:700;flex:1}
+.habit-status{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;transition:all .25s;flex-shrink:0}
+.habit-card.done .habit-status{background:var(--accent);border-color:var(--accent)}
+.habit-card.rest-done .habit-status{background:var(--muted);border-color:var(--muted)}
+.check-icon{width:12px;height:12px;opacity:0;transition:opacity .2s}
+.habit-card.done .check-icon,.habit-card.rest-done .check-icon{opacity:1}
+
+/* RUN */
+.run-idle{display:flex;gap:8px}
+.run-idle-btn{flex:1;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.run-idle-btn.primary{background:var(--accent);border-color:var(--accent);color:#0d1117}
+.run-idle-btn:active{transform:scale(0.97)}
+.run-form{display:none}.run-form.open{display:block}
+.form-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.form-label{font-size:13px;color:var(--muted);font-weight:500;width:68px;flex-shrink:0}
+.form-input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:16px;font-weight:600;padding:10px 14px;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.form-input:focus{border-color:var(--accent-mid)}
+.form-input.optional{border-style:dashed}
+.form-unit{font-size:13px;color:var(--muted);width:30px;flex-shrink:0}
+.form-optional-label{font-size:11px;color:var(--muted);text-align:center;margin-bottom:10px;padding:6px;background:var(--s2);border-radius:var(--radius-sm);border:1px dashed var(--border)}
+.rpe-wrap{margin-bottom:12px}
+.rpe-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.rpe-label{font-size:13px;color:var(--muted);font-weight:500}
+.rpe-valwrap{display:flex;align-items:baseline;gap:6px}
+.rpe-value{font-size:22px;font-weight:800;letter-spacing:-1px}
+.rpe-desc{font-size:13px;font-weight:600}
+.rpe-slider{width:100%;-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;outline:none;cursor:pointer;background:var(--s2)}
+.rpe-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);cursor:pointer;border:3px solid var(--bg)}
+.rpe-scale{display:flex;justify-content:space-between;margin-top:6px}
+.rpe-scale span{font-size:10px;color:var(--muted)}
+.load-preview-dual{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.load-box{border-radius:var(--radius-sm);padding:10px 12px}
+.load-box.srpe{background:var(--accent-dim);border:1px solid var(--accent-mid)}
+.load-box.trimp{background:var(--blue-dim);border:1px solid var(--blue-mid)}
+.load-box.trimp.inactive{background:var(--s2);border:1px dashed var(--border)}
+.load-box-label{font-size:11px;font-weight:600;margin-bottom:3px}
+.load-box.srpe .load-box-label{color:var(--accent)}
+.load-box.trimp .load-box-label{color:var(--blue)}
+.load-box.trimp.inactive .load-box-label{color:var(--muted)}
+.load-box-val{font-size:20px;font-weight:800;letter-spacing:-1px}
+.load-box.srpe .load-box-val{color:var(--accent)}
+.load-box.trimp .load-box-val{color:var(--blue)}
+.load-box.trimp.inactive .load-box-val{color:var(--muted)}
+.load-box-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.form-actions{display:flex;gap:8px;margin-top:4px}
+.form-save{flex:1;padding:13px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#0d1117;font-size:15px;font-weight:700;cursor:pointer}
+.form-cancel{padding:13px 16px;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);font-size:15px;font-weight:600;cursor:pointer}
+.run-summary{display:none}.run-summary.show{display:block}
+.run-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.run-metric{background:var(--s2);border-radius:var(--radius-sm);padding:10px 8px;text-align:center}
+.run-metric-val{font-size:18px;font-weight:800;letter-spacing:-0.5px}
+.run-metric-label{font-size:11px;color:var(--muted);font-weight:500;margin-top:2px}
+.run-load-dual{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.run-load-box{border-radius:var(--radius-sm);padding:11px 14px}
+.run-load-box.srpe{background:var(--accent-dim);border:1px solid var(--accent-mid)}
+.run-load-box.trimp{background:var(--blue-dim);border:1px solid var(--blue-mid)}
+.run-load-box.trimp.na{background:var(--s2);border:1px dashed var(--border)}
+.run-load-box-label{font-size:11px;font-weight:600;margin-bottom:2px}
+.run-load-box.srpe .run-load-box-label{color:var(--accent)}
+.run-load-box.trimp .run-load-box-label{color:var(--blue)}
+.run-load-box.trimp.na .run-load-box-label{color:var(--muted)}
+.run-load-box-val{font-size:20px;font-weight:800;letter-spacing:-1px}
+.run-load-box.srpe .run-load-box-val{color:var(--accent)}
+.run-load-box.trimp .run-load-box-val{color:var(--blue)}
+.run-load-box.trimp.na .run-load-box-val{color:var(--muted)}
+.divergence-badge{border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.div-icon{font-size:18px;flex-shrink:0}
+.div-text{font-size:12px;font-weight:600;flex:1}
+.div-sub{font-size:11px;font-weight:400;color:var(--muted);margin-top:2px}
+.run-edit-btn{width:100%;padding:10px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer}
+.rest-summary{display:none;text-align:center;padding:8px 0;color:var(--muted);font-size:14px;font-weight:600}
+.rest-summary.show{display:block}
+.rest-edit-btn{display:none;width:100%;margin-top:8px;padding:9px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer}
+.rest-edit-btn.show{display:block}
+
+/* OTHER HABITS */
+.input-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.input-label{font-size:13px;color:var(--muted);font-weight:500;width:60px;flex-shrink:0}
+.num-input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:16px;font-weight:600;padding:10px 14px;text-align:right;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.num-input:focus{border-color:var(--accent-mid)}
+.cal-status{font-size:13px;font-weight:600;margin-top:4px;min-height:18px}
+.cal-status.good{color:var(--accent)}.cal-status.close{color:var(--warn)}.cal-status.bad{color:var(--fail)}
+.sleep-stepper{display:flex;align-items:center}
+.step-btn{width:44px;height:44px;background:var(--s2);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;font-weight:300}
+.step-btn:first-child{border-radius:var(--radius-sm) 0 0 var(--radius-sm)}
+.step-btn:last-child{border-radius:0 var(--radius-sm) var(--radius-sm) 0;border-left:none}
+.step-btn:active{background:var(--accent);color:#0d1117}
+.sleep-val{flex:1;text-align:center;font-size:22px;font-weight:700;background:var(--s2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);height:44px;display:flex;align-items:center;justify-content:center}
+.sleep-sub{font-size:12px;color:var(--muted);margin-top:8px;text-align:center}
+.water-bar-track{height:8px;background:var(--s2);border-radius:4px;overflow:hidden;margin-bottom:6px}
+.water-bar-fill{height:100%;background:linear-gradient(90deg,#2188ff,#79c0ff);border-radius:4px;transition:width .4s cubic-bezier(.34,1.56,.64,1)}
+.water-info{display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px}
+.water-ml{font-weight:700}
+.water-taps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.water-tap{padding:10px 0;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center}
+.water-tap:active{transform:scale(0.95)}
+.water-tap.filled{background:rgba(33,136,255,0.15);border-color:rgba(121,192,255,0.3);color:#79c0ff}
+.water-reset{width:100%;margin-top:8px;padding:9px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);font-size:13px;cursor:pointer}
+
+/* PUSH-UPS */
+.pu-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:12px;transition:border-color .25s}
+.pu-card.has-sets{border-color:var(--orange-mid);background:var(--orange-dim)}
+.pu-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.pu-icon{width:40px;height:40px;border-radius:12px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.pu-title{font-size:16px;font-weight:700;flex:1}
+.pu-totals{display:flex;gap:16px;margin-bottom:12px}
+.pu-stat{text-align:center}
+.pu-stat-val{font-size:28px;font-weight:800;letter-spacing:-1px;color:var(--orange)}
+.pu-stat-label{font-size:11px;color:var(--muted);font-weight:500;margin-top:1px}
+.pu-goal-bar-track{height:6px;background:var(--s2);border-radius:3px;overflow:hidden;margin-bottom:14px}
+.pu-goal-bar-fill{height:100%;border-radius:3px;background:var(--orange);transition:width .4s cubic-bezier(.34,1.56,.64,1)}
+.pu-sets-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;min-height:0}
+.pu-set-chip{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:14px;font-weight:700;transition:all .15s}
+.pu-set-chip:active{transform:scale(0.95)}
+.pu-set-num{color:var(--orange)}
+.pu-set-label{font-size:11px;color:var(--muted)}
+.pu-set-del{width:16px;height:16px;border-radius:50%;background:rgba(248,81,73,0.2);border:none;color:var(--fail);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0;padding:0}
+.pu-add-row{display:flex;gap:8px;align-items:center}
+.pu-add-input{width:90px;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:18px;font-weight:700;padding:10px 12px;text-align:center;outline:none;transition:border-color .2s;-webkit-appearance:none;display:none}
+.pu-add-input:focus{border-color:var(--orange-mid)}
+.pu-add-input.open{display:block}
+.pu-add-btn{flex:1;padding:11px;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.pu-add-btn:active{transform:scale(0.97)}
+.pu-confirm-btn{padding:11px 16px;background:var(--orange);border:none;border-radius:var(--radius-sm);color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:none;transition:all .2s}
+.pu-confirm-btn.open{display:block}
+.pu-confirm-btn:active{transform:scale(0.97)}
+.pu-goal-note{font-size:11px;color:var(--muted);text-align:right;margin-top:8px}
+
+/* PROGRESS */
+.section-title{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:12px;margin-top:4px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.stat-card.dim{opacity:0.5}
+.stat-val{font-size:30px;font-weight:800;letter-spacing:-1px;margin-bottom:2px}
+.stat-label{font-size:12px;font-weight:600}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.stat-card.green .stat-val,.stat-card.green .stat-label{color:var(--accent)}
+.stat-card.blue .stat-val,.stat-card.blue .stat-label{color:var(--blue)}
+.stat-card.purple .stat-val,.stat-card.purple .stat-label{color:var(--purple)}
+.stat-card.orange .stat-val,.stat-card.orange .stat-label{color:var(--orange)}
+.chart-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.chart-card h4{font-size:14px;font-weight:700;margin-bottom:3px}
+.chart-card p{font-size:12px;color:var(--muted);margin-bottom:14px}
+.chart-wrap{position:relative;height:180px}
+.acwr-number{font-size:36px;font-weight:800;letter-spacing:-2px;margin-bottom:10px}
+.acwr-bar{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--blue) 0%,var(--accent) 30%,var(--accent) 65%,var(--warn) 78%,var(--fail) 100%);margin:8px 0;position:relative}
+.acwr-marker{position:absolute;top:-5px;width:20px;height:20px;border-radius:50%;background:var(--text);border:3px solid var(--bg);transform:translateX(-50%);transition:left .5s cubic-bezier(.34,1.56,.64,1)}
+.acwr-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+.div-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.div-card h4{font-size:14px;font-weight:700;margin-bottom:3px}
+.div-card p{font-size:12px;color:var(--muted);margin-bottom:14px}
+.div-sessions{display:flex;gap:4px;align-items:flex-end;height:60px;margin-bottom:8px}
+.div-session-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%}
+.div-bar-pair{flex:1;width:100%;display:flex;gap:2px;align-items:flex-end}
+.div-bar{flex:1;border-radius:2px 2px 0 0;min-height:3px}
+.div-bar.srpe{background:var(--accent)}
+.div-bar.trimp{background:var(--blue)}
+.div-date{font-size:9px;color:var(--muted);text-align:center}
+.div-insight{border-radius:var(--radius-sm);padding:12px 14px;border:1px solid}
+.div-insight.good{background:var(--accent-dim);border-color:var(--accent-mid)}
+.div-insight.warn{background:rgba(227,179,65,0.1);border-color:rgba(227,179,65,0.3)}
+.div-insight.alert{background:rgba(248,81,73,0.1);border-color:rgba(248,81,73,0.3)}
+.div-insight-title{font-size:13px;font-weight:700;margin-bottom:4px}
+.div-insight.good .div-insight-title{color:var(--accent)}
+.div-insight.warn .div-insight-title{color:var(--warn)}
+.div-insight.alert .div-insight-title{color:var(--fail)}
+.div-insight-text{font-size:12px;color:var(--muted);line-height:1.5}
+.div-legend{display:flex;gap:14px;margin-bottom:10px}
+.div-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.div-legend-dot{width:8px;height:8px;border-radius:2px}
+
+/* PUSH-UP HISTORY */
+.pu-log-item{padding:12px 0;border-bottom:1px solid var(--border)}
+.pu-log-item:last-child{border-bottom:none}
+.pu-log-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.pu-log-date{font-size:12px;color:var(--muted)}
+.pu-log-total{font-size:16px;font-weight:800;color:var(--orange)}
+.pu-log-sets{display:flex;flex-wrap:wrap;gap:5px}
+.pu-log-chip{background:var(--s2);border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--muted)}
+
+.run-log-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.run-log-item:last-child{border-bottom:none}
+.run-log-date{font-size:12px;color:var(--muted);width:64px;flex-shrink:0}
+.run-log-details{flex:1;min-width:0}
+.run-log-main{font-size:14px;font-weight:700}
+.run-log-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.run-log-loads{display:flex;flex-direction:column;gap:2px;align-items:flex-end;flex-shrink:0}
+.run-log-load-srpe{font-size:13px;font-weight:800;color:var(--accent)}
+.run-log-load-trimp{font-size:11px;font-weight:600;color:var(--blue)}
+.run-log-rest{font-size:13px;color:var(--muted);font-style:italic}
+
+.celebration{display:none;position:fixed;inset:0;background:rgba(13,17,23,0.92);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.celebration.show{display:flex}
+.cel-emoji{font-size:72px}
+.cel-title{font-size:22px;font-weight:800;text-align:center;padding:0 32px}
+.cel-sub{font-size:15px;color:var(--muted);text-align:center;padding:0 32px}
+.cel-btn{margin-top:8px;padding:14px 32px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#0d1117;font-size:16px;font-weight:700;cursor:pointer}
+
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:50;align-items:flex-end;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--s1);border-radius:var(--radius) var(--radius) 0 0;padding:24px 20px;width:100%;max-width:430px;border:1px solid var(--border)}
+.modal h3{font-size:18px;font-weight:700;margin-bottom:6px}
+.modal-section{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.6px;text-transform:uppercase;margin:16px 0 10px}
+.modal-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.modal-label{font-size:15px}
+.modal-label-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.modal-input{background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:16px;font-weight:600;padding:10px 14px;width:110px;text-align:right;outline:none}
+.modal-save{width:100%;padding:14px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#0d1117;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px}
+.settings-btn{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px}
+.view{display:none}.view.active{display:block}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="greeting" id="greeting">Good morning</div>
+      <div class="date-str" id="dateStr">Monday</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="settings-btn" onclick="openSettings()">⚙</button>
+      <div class="score-pill" id="scorePill">0 / 4</div>
+    </div>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" id="nav-today" onclick="showView('today')">Today</button>
+  <button class="nav-btn" id="nav-progress" onclick="showView('progress')">Progress</button>
+</div>
+
+<div class="scroll">
+<div class="view active" id="view-today">
+
+  <!-- RUN -->
+  <div class="habit-card" id="card-run">
+    <div class="habit-header">
+      <div class="habit-icon">🏃</div>
+      <div class="habit-title">Run</div>
+      <div class="habit-status">
+        <svg class="check-icon" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="run-idle" id="runIdle">
+      <button class="run-idle-btn primary" onclick="openRunForm()">Log run</button>
+      <button class="run-idle-btn" onclick="logRestDay()">Rest day</button>
+    </div>
+    <div class="run-form" id="runForm">
+      <div class="form-row">
+        <span class="form-label">Distance</span>
+        <input class="form-input" id="fDist" type="number" inputmode="decimal" placeholder="0.0" step="0.1" oninput="updatePreviews()">
+        <span class="form-unit">km</span>
+      </div>
+      <div class="form-row">
+        <span class="form-label">Duration</span>
+        <input class="form-input" id="fDur" type="number" inputmode="numeric" placeholder="0" oninput="updatePreviews()">
+        <span class="form-unit">min</span>
+      </div>
+      <div class="rpe-wrap">
+        <div class="rpe-top">
+          <span class="rpe-label">RPE (CR-10)</span>
+          <div class="rpe-valwrap"><span class="rpe-value" id="rpeVal">5</span><span class="rpe-desc" id="rpeDesc">Hard</span></div>
+        </div>
+        <input class="rpe-slider" id="rpeSlider" type="range" min="1" max="10" step="1" value="5" oninput="updateRPE()">
+        <div class="rpe-scale"><span>1 Easy</span><span>5 Hard</span><span>10 Max</span></div>
+      </div>
+      <div class="form-optional-label">Optional — enter avg HR for Banister TRIMP</div>
+      <div class="form-row">
+        <span class="form-label">Avg HR</span>
+        <input class="form-input optional" id="fHR" type="number" inputmode="numeric" placeholder="—" oninput="updatePreviews()">
+        <span class="form-unit">bpm</span>
+      </div>
+      <div class="load-preview-dual">
+        <div class="load-box srpe"><div class="load-box-label">sRPE Load</div><div class="load-box-val" id="prevSRPE">— AU</div><div class="load-box-sub">RPE × duration</div></div>
+        <div class="load-box trimp inactive" id="trimpBox"><div class="load-box-label">TRIMP</div><div class="load-box-val" id="prevTRIMP">— AU</div><div class="load-box-sub">Banister</div></div>
+      </div>
+      <div class="form-actions">
+        <button class="form-cancel" onclick="cancelRunForm()">Cancel</button>
+        <button class="form-save" onclick="saveRun()">Save run</button>
+      </div>
+    </div>
+    <div class="run-summary" id="runSummary">
+      <div class="run-metrics">
+        <div class="run-metric"><div class="run-metric-val" id="sumDist">—</div><div class="run-metric-label">km</div></div>
+        <div class="run-metric"><div class="run-metric-val" id="sumDur">—</div><div class="run-metric-label">min</div></div>
+        <div class="run-metric"><div class="run-metric-val" id="sumPace">—</div><div class="run-metric-label">min/km</div></div>
+      </div>
+      <div class="run-load-dual">
+        <div class="run-load-box srpe"><div class="run-load-box-label">sRPE Load</div><div class="run-load-box-val" id="sumSRPE">—</div></div>
+        <div class="run-load-box trimp na" id="sumTrimpBox"><div class="run-load-box-label">TRIMP</div><div class="run-load-box-val" id="sumTRIMP">—</div></div>
+      </div>
+      <div id="divBadge" style="display:none" class="divergence-badge">
+        <div class="div-icon" id="divIcon">✓</div>
+        <div><div class="div-text" id="divText">—</div><div class="div-sub" id="divSub">—</div></div>
+      </div>
+      <button class="run-edit-btn" onclick="openRunForm()">Edit run</button>
+    </div>
+    <div class="rest-summary" id="restSummary">Rest day — recovery logged</div>
+    <button class="rest-edit-btn" id="restEditBtn" onclick="clearRun()">Clear</button>
+  </div>
+
+  <!-- CALORIES -->
+  <div class="habit-card" id="card-cal">
+    <div class="habit-header">
+      <div class="habit-icon">🍽</div>
+      <div class="habit-title">Calories</div>
+      <div class="habit-status">
+        <svg class="check-icon" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="input-row">
+      <span class="input-label">Goal</span>
+      <input class="num-input" id="calGoalInput" type="number" inputmode="numeric" placeholder="2000" onchange="saveCalories()">
+    </div>
+    <div class="input-row">
+      <span class="input-label">Today</span>
+      <input class="num-input" id="calActualInput" type="number" inputmode="numeric" placeholder="—" oninput="saveCalories()">
+    </div>
+    <div class="cal-status" id="calStatus"></div>
+  </div>
+
+  <!-- SLEEP -->
+  <div class="habit-card" id="card-sleep">
+    <div class="habit-header">
+      <div class="habit-icon">🌙</div>
+      <div class="habit-title">Sleep</div>
+      <div class="habit-status">
+        <svg class="check-icon" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="sleep-stepper">
+      <button class="step-btn" onclick="adjustSleep(-0.5)">−</button>
+      <div class="sleep-val" id="sleepVal">—</div>
+      <button class="step-btn" onclick="adjustSleep(0.5)">+</button>
+    </div>
+    <div class="sleep-sub" id="sleepSub">Tap + / − to set hours slept</div>
+  </div>
+
+  <!-- WATER -->
+  <div class="habit-card" id="card-water">
+    <div class="habit-header">
+      <div class="habit-icon">💧</div>
+      <div class="habit-title">Water</div>
+      <div class="habit-status">
+        <svg class="check-icon" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="water-bar-track"><div class="water-bar-fill" id="waterFill" style="width:0%"></div></div>
+    <div class="water-info"><span class="water-ml" id="waterMl">0 ml</span><span style="color:var(--muted)">Goal: 3,000 ml</span></div>
+    <div class="water-taps" id="waterTaps"></div>
+    <button class="water-reset" onclick="resetWater()">Reset water</button>
+  </div>
+
+  <!-- PUSH-UPS -->
+  <div class="pu-card" id="card-pu">
+    <div class="pu-header">
+      <div class="pu-icon">💪</div>
+      <div class="pu-title">Push-ups</div>
+      <div style="font-size:11px;color:var(--muted);background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:4px 10px;font-weight:600">Log only</div>
+    </div>
+    <div class="pu-totals">
+      <div class="pu-stat"><div class="pu-stat-val" id="puTotalReps">0</div><div class="pu-stat-label">total reps</div></div>
+      <div style="width:1px;background:var(--border)"></div>
+      <div class="pu-stat"><div class="pu-stat-val" id="puTotalSets">0</div><div class="pu-stat-label">sets</div></div>
+      <div style="width:1px;background:var(--border)"></div>
+      <div class="pu-stat"><div class="pu-stat-val" id="puBestSet">—</div><div class="pu-stat-label">best set</div></div>
+    </div>
+    <div class="pu-goal-bar-track"><div class="pu-goal-bar-fill" id="puGoalFill" style="width:0%"></div></div>
+    <div id="puSetsWrap" class="pu-sets-wrap" style="display:none"></div>
+    <div class="pu-add-row">
+      <input class="pu-add-input" id="puInput" type="number" inputmode="numeric" placeholder="reps"
+        onkeydown="if(event.key==='Enter')confirmSet()">
+      <button class="pu-add-btn" id="puAddBtn" onclick="togglePuInput()">+ Add set</button>
+      <button class="pu-confirm-btn" id="puConfirmBtn" onclick="confirmSet()">Add</button>
+    </div>
+    <div class="pu-goal-note" id="puGoalNote"></div>
+  </div>
+
+</div>
+
+<!-- PROGRESS -->
+<div class="view" id="view-progress">
+
+  <div class="section-title">sRPE load</div>
+  <div class="stat-grid">
+    <div class="stat-card blue"><div class="stat-val" id="statSRPE_ATL">—</div><div class="stat-label">ATL — Fatigue</div><div class="stat-sub">7-day avg (AU/day)</div></div>
+    <div class="stat-card green"><div class="stat-val" id="statSRPE_CTL">—</div><div class="stat-label">CTL — Fitness</div><div class="stat-sub">28-day avg (AU/day)</div></div>
+  </div>
+  <div class="section-title">TRIMP load</div>
+  <div class="stat-grid">
+    <div class="stat-card blue" id="trimpATLCard"><div class="stat-val" id="statTRIMP_ATL">—</div><div class="stat-label">ATL — Fatigue</div><div class="stat-sub">7-day avg (AU/day)</div></div>
+    <div class="stat-card purple" id="trimpCTLCard"><div class="stat-val" id="statTRIMP_CTL">—</div><div class="stat-label">CTL — Fitness</div><div class="stat-sub">28-day avg (AU/day)</div></div>
+  </div>
+
+  <div class="chart-card">
+    <h4>ACWR (sRPE)</h4>
+    <p>Optimal 0.8–1.3 · ATL ÷ CTL</p>
+    <div class="acwr-number" id="acwrVal">—</div>
+    <div class="acwr-bar"><div class="acwr-marker" id="acwrMarker" style="left:50%"></div></div>
+    <div class="acwr-labels"><span>0.0</span><span>0.8</span><span>1.3</span><span>1.5</span><span>2.0+</span></div>
+    <div style="font-size:13px;font-weight:600;margin-top:10px" id="acwrLabel">—</div>
+  </div>
+
+  <div class="chart-card">
+    <h4>Session load — last 28 days</h4>
+    <p>sRPE (green) vs TRIMP (blue) · dashed = ATL</p>
+    <div class="chart-wrap"><canvas id="loadChart"></canvas></div>
+  </div>
+
+  <div class="div-card" id="divCard">
+    <h4>sRPE vs TRIMP divergence</h4>
+    <p>When they split, something physiological is happening</p>
+    <div class="div-legend">
+      <div class="div-legend-item"><div class="div-legend-dot" style="background:var(--accent)"></div>sRPE</div>
+      <div class="div-legend-item"><div class="div-legend-dot" style="background:var(--blue)"></div>TRIMP</div>
+    </div>
+    <div class="div-sessions" id="divSessions"></div>
+    <div id="divInsight" style="margin-top:12px"></div>
+    <div id="divNoData" style="font-size:13px;color:var(--muted);padding:8px 0">Log avg HR on runs to enable divergence analysis.</div>
+  </div>
+
+  <!-- PUSH-UP PROGRESS -->
+  <div class="section-title" style="margin-top:4px">Push-ups</div>
+  <div class="stat-grid">
+    <div class="stat-card orange"><div class="stat-val" id="puStatWeek">—</div><div class="stat-label">This week</div><div class="stat-sub">total reps</div></div>
+    <div class="stat-card orange"><div class="stat-val" id="puStatPR">—</div><div class="stat-label">Best day</div><div class="stat-sub">total reps</div></div>
+  </div>
+  <div class="chart-card">
+    <h4>Weekly push-up volume</h4>
+    <p>Total reps per week</p>
+    <div class="chart-wrap" style="height:140px"><canvas id="puChart"></canvas></div>
+  </div>
+  <div id="puLogList"></div>
+
+  <div class="chart-card">
+    <h4>Weekly run volume — km</h4>
+    <p>Total distance per week</p>
+    <div class="chart-wrap" style="height:140px"><canvas id="volChart"></canvas></div>
+  </div>
+
+  <div class="section-title" style="margin-top:4px">Run log</div>
+  <div id="runLogList"></div>
+  <div class="section-title" style="margin-top:16px">Daily habits — last 7 days</div>
+  <div id="historyList"></div>
+
+</div>
+</div>
+
+<div class="celebration" id="celebration">
+  <div class="cel-emoji">🎉</div>
+  <div class="cel-title">Perfect day!</div>
+  <div class="cel-sub">All 4 habits nailed. Keep building.</div>
+  <button class="cel-btn" onclick="document.getElementById('celebration').classList.remove('show')">Keep it up →</button>
+</div>
+
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <h3>Settings</h3>
+    <div class="modal-section">Nutrition</div>
+    <div class="modal-row">
+      <div><div class="modal-label">Calorie goal</div></div>
+      <input class="modal-input" id="settingsCalGoal" type="number" inputmode="numeric">
+    </div>
+    <div class="modal-section">Push-ups</div>
+    <div class="modal-row">
+      <div><div class="modal-label">Daily rep target</div><div class="modal-label-sub">Optional goal for progress bar</div></div>
+      <input class="modal-input" id="settingsPuGoal" type="number" inputmode="numeric">
+    </div>
+    <div class="modal-section">Heart rate — for TRIMP</div>
+    <div class="modal-row">
+      <div><div class="modal-label">HR max</div><div class="modal-label-sub">Max recorded bpm</div></div>
+      <input class="modal-input" id="settingsHRMax" type="number" inputmode="numeric">
+    </div>
+    <div class="modal-row">
+      <div><div class="modal-label">HR rest</div><div class="modal-label-sub">Resting morning bpm</div></div>
+      <input class="modal-input" id="settingsHRRest" type="number" inputmode="numeric">
+    </div>
+    <button class="modal-save" onclick="saveSettings()">Save</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const TODAY=new Date().toISOString().split('T')[0];
+let data=JSON.parse(localStorage.getItem('streak_data')||'{}');
+let settings=JSON.parse(localStorage.getItem('streak_settings')||'{"calGoal":2000,"hrMax":185,"hrRest":55,"puGoal":100}');
+let loadChart=null,volChart=null,puChart=null,celebDone=false;
+const RPE_DESC=['','Very easy','Easy','Moderate','Somewhat hard','Hard','Hard+','Very hard','Very hard+','Near max','Maximal'];
+const RPE_COL=['','#3fb950','#3fb950','#3fb950','#e3b341','#e3b341','#e3b341','#f85149','#f85149','#f85149','#f85149'];
+
+function save(){localStorage.setItem('streak_data',JSON.stringify(data));}
+function saveSett(){localStorage.setItem('streak_settings',JSON.stringify(settings));}
+function getDay(d){
+  if(!data[d])data[d]={run:false,rest:false,runData:null,calGoal:settings.calGoal,calActual:null,sleep:null,water:0,pushups:[]};
+  if(!data[d].pushups)data[d].pushups=[];
+  return data[d];
+}
+
+function calcTRIMP(hrAvg,dur){
+  const hrMax=settings.hrMax,hrRest=settings.hrRest;
+  if(!hrAvg||!hrMax||!hrRest||!dur)return null;
+  const hrr=(hrAvg-hrRest)/(hrMax-hrRest);
+  if(hrr<=0||hrr>=1)return null;
+  return Math.round(dur*hrr*Math.exp(1.92*hrr));
+}
+
+function init(){
+  const d=getDay(TODAY);
+  const now=new Date();const h=now.getHours();
+  document.getElementById('greeting').textContent=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('dateStr').textContent=days[now.getDay()]+', '+now.getDate()+' '+months[now.getMonth()];
+  document.getElementById('settingsCalGoal').value=settings.calGoal;
+  document.getElementById('settingsHRMax').value=settings.hrMax||185;
+  document.getElementById('settingsHRRest').value=settings.hrRest||55;
+  document.getElementById('settingsPuGoal').value=settings.puGoal||100;
+  renderRunCard(d);
+  document.getElementById('calGoalInput').value=d.calGoal||settings.calGoal;
+  if(d.calActual!==null)document.getElementById('calActualInput').value=d.calActual;
+  renderCalories(d);renderSleep(d.sleep);buildWaterTaps();renderWater(d.water);
+  renderPushups();updateScore();injectManifest();
+}
+
+// ---- RUN ----
+function openRunForm(){
+  const d=getDay(TODAY);
+  document.getElementById('runIdle').style.display='none';
+  document.getElementById('runSummary').classList.remove('show');
+  document.getElementById('restSummary').classList.remove('show');
+  document.getElementById('restEditBtn').classList.remove('show');
+  if(d.runData){
+    document.getElementById('fDist').value=d.runData.distance;
+    document.getElementById('fDur').value=d.runData.duration;
+    document.getElementById('rpeSlider').value=d.runData.rpe;
+    document.getElementById('fHR').value=d.runData.hrAvg||'';
+    updateRPE();
+  }
+  document.getElementById('runForm').classList.add('open');
+  updatePreviews();
+}
+function cancelRunForm(){renderRunCard(getDay(TODAY));document.getElementById('runForm').classList.remove('open');}
+function clearRun(){const d=getDay(TODAY);d.run=false;d.rest=false;d.runData=null;save();renderRunCard(d);updateScore();}
+function logRestDay(){const d=getDay(TODAY);d.run=false;d.rest=true;d.runData=null;save();renderRunCard(d);updateScore();}
+function saveRun(){
+  const dist=parseFloat(document.getElementById('fDist').value);
+  const dur=parseInt(document.getElementById('fDur').value);
+  const rpe=parseInt(document.getElementById('rpeSlider').value);
+  const hrAvg=parseInt(document.getElementById('fHR').value)||null;
+  if(!dist||!dur){alert('Please enter distance and duration.');return;}
+  const trimp=calcTRIMP(hrAvg,dur);
+  const d=getDay(TODAY);
+  d.run=true;d.rest=false;d.runData={distance:dist,duration:dur,rpe,load:rpe*dur,hrAvg,trimp};
+  save();document.getElementById('runForm').classList.remove('open');renderRunCard(d);updateScore();
+}
+function updateRPE(){
+  const v=parseInt(document.getElementById('rpeSlider').value);
+  document.getElementById('rpeVal').textContent=v;
+  document.getElementById('rpeDesc').textContent=RPE_DESC[v];
+  document.getElementById('rpeDesc').style.color=RPE_COL[v];
+  updatePreviews();
+}
+function updatePreviews(){
+  const dur=parseInt(document.getElementById('fDur').value)||0;
+  const rpe=parseInt(document.getElementById('rpeSlider').value)||5;
+  const hr=parseInt(document.getElementById('fHR').value)||null;
+  const srpe=dur>0?rpe*dur:null;
+  const trimp=calcTRIMP(hr,dur);
+  document.getElementById('prevSRPE').textContent=srpe?srpe+' AU':'— AU';
+  document.getElementById('prevTRIMP').textContent=trimp?trimp+' AU':'— AU';
+  document.getElementById('trimpBox').classList.toggle('inactive',!trimp);
+}
+function renderRunCard(d){
+  const card=document.getElementById('card-run');
+  document.getElementById('runIdle').style.display='none';
+  document.getElementById('runForm').classList.remove('open');
+  document.getElementById('runSummary').classList.remove('show');
+  document.getElementById('restSummary').classList.remove('show');
+  document.getElementById('restEditBtn').classList.remove('show');
+  card.classList.remove('done','rest-done');
+  if(d.run&&d.runData){
+    card.classList.add('done');
+    const r=d.runData;
+    document.getElementById('sumDist').textContent=r.distance;
+    document.getElementById('sumDur').textContent=r.duration;
+    const pace=r.distance>0?r.duration/r.distance:0;
+    const pm=Math.floor(pace);const ps=Math.round((pace-pm)*60).toString().padStart(2,'0');
+    document.getElementById('sumPace').textContent=pm+':'+ps;
+    document.getElementById('sumSRPE').textContent=r.load+' AU';
+    const tb=document.getElementById('sumTrimpBox');
+    if(r.trimp){tb.classList.remove('na');document.getElementById('sumTRIMP').textContent=r.trimp+' AU';renderDivBadge(r);}
+    else{tb.classList.add('na');document.getElementById('sumTRIMP').textContent='No HR';document.getElementById('divBadge').style.display='none';}
+    document.getElementById('runSummary').classList.add('show');
+  } else if(d.rest){
+    card.classList.add('rest-done');
+    document.getElementById('restSummary').classList.add('show');
+    document.getElementById('restEditBtn').classList.add('show');
+  } else {
+    document.getElementById('runIdle').style.display='flex';
+  }
+}
+function renderDivBadge(r){
+  if(!r.trimp)return;
+  const sessions=Object.keys(data).filter(k=>data[k].runData?.trimp).sort().reverse().slice(0,14);
+  let baselineRatio=null;
+  if(sessions.length>=3){const ratios=sessions.map(k=>data[k].runData.trimp/data[k].runData.load);baselineRatio=ratios.reduce((a,b)=>a+b,0)/ratios.length;}
+  const currentRatio=r.trimp/r.load;
+  const badge=document.getElementById('divBadge');const icon=document.getElementById('divIcon');const text=document.getElementById('divText');const sub=document.getElementById('divSub');
+  badge.style.display='flex';
+  if(baselineRatio===null){badge.style.background='var(--s2)';badge.style.border='1px solid var(--border)';icon.textContent='📊';text.textContent='TRIMP/sRPE ratio: '+currentRatio.toFixed(2);sub.textContent='Need 3+ HR sessions to detect divergence';return;}
+  const dev=(currentRatio-baselineRatio)/baselineRatio;
+  if(Math.abs(dev)<0.15){badge.style.background='var(--accent-dim)';badge.style.border='1px solid var(--accent-mid)';icon.textContent='✓';text.style.color='var(--accent)';text.textContent='Metrics aligned (ratio '+currentRatio.toFixed(2)+')';sub.textContent='HR and perceived effort match your baseline';}
+  else if(dev>0.15){badge.style.background='rgba(248,81,73,0.1)';badge.style.border='1px solid rgba(248,81,73,0.3)';icon.textContent='⚠';text.style.color='var(--fail)';text.textContent='HR elevated vs RPE ('+currentRatio.toFixed(2)+')';sub.textContent='Possible: heat, illness, overreaching, dehydration';}
+  else{badge.style.background='rgba(227,179,65,0.1)';badge.style.border='1px solid rgba(227,179,65,0.3)';icon.textContent='↓';text.style.color='var(--warn)';text.textContent='RPE elevated vs HR ('+currentRatio.toFixed(2)+')';sub.textContent='Possible: mental fatigue, accumulated load';}
+}
+
+// ---- PUSH-UPS ----
+function togglePuInput(){
+  const inp=document.getElementById('puInput');
+  const addBtn=document.getElementById('puAddBtn');
+  const confirmBtn=document.getElementById('puConfirmBtn');
+  const isOpen=inp.classList.contains('open');
+  if(isOpen){inp.classList.remove('open');confirmBtn.classList.remove('open');addBtn.textContent='+ Add set';}
+  else{inp.classList.add('open');confirmBtn.classList.add('open');addBtn.textContent='Cancel';inp.value='';setTimeout(()=>inp.focus(),50);}
+}
+function confirmSet(){
+  const inp=document.getElementById('puInput');
+  const reps=parseInt(inp.value);
+  if(!reps||reps<1)return;
+  const d=getDay(TODAY);
+  d.pushups.push(reps);
+  save();
+  inp.value='';
+  inp.focus();
+  renderPushups();
+}
+function removeSet(idx){
+  const d=getDay(TODAY);
+  d.pushups.splice(idx,1);
+  save();renderPushups();
+}
+function renderPushups(){
+  const d=getDay(TODAY);
+  const sets=d.pushups||[];
+  const total=sets.reduce((a,b)=>a+b,0);
+  const best=sets.length?Math.max(...sets):null;
+  const goal=settings.puGoal||100;
+  document.getElementById('puTotalReps').textContent=total;
+  document.getElementById('puTotalSets').textContent=sets.length;
+  document.getElementById('puBestSet').textContent=best||'—';
+  const pct=Math.min(100,Math.round(total/goal*100));
+  document.getElementById('puGoalFill').style.width=pct+'%';
+  document.getElementById('puGoalNote').textContent=total>=goal?'✓ Goal reached ('+total+'/'+goal+' reps)':(goal-total)+' reps to go (goal: '+goal+')';
+  document.getElementById('puGoalNote').style.color=total>=goal?'var(--orange)':'var(--muted)';
+  const card=document.getElementById('card-pu');
+  card.classList.toggle('has-sets',sets.length>0);
+  const wrap=document.getElementById('puSetsWrap');
+  if(sets.length>0){
+    wrap.style.display='flex';
+    wrap.innerHTML='';
+    sets.forEach((r,i)=>{
+      const chip=document.createElement('div');chip.className='pu-set-chip';
+      chip.innerHTML=`<span class="pu-set-num">${r}</span><span class="pu-set-label">reps</span><button class="pu-set-del" onclick="removeSet(${i})">×</button>`;
+      wrap.appendChild(chip);
+    });
+  } else {
+    wrap.style.display='none';wrap.innerHTML='';
+  }
+}
+
+// ---- OTHER HABITS ----
+function saveCalories(){
+  const d=getDay(TODAY);
+  d.calGoal=parseFloat(document.getElementById('calGoalInput').value)||settings.calGoal;
+  const a=document.getElementById('calActualInput').value;
+  d.calActual=a!==''?parseFloat(a):null;
+  save();renderCalories(d);updateScore();
+}
+function renderCalories(d){
+  const card=document.getElementById('card-cal');const st=document.getElementById('calStatus');
+  if(d.calActual===null){st.textContent='';card.classList.remove('done');return;}
+  const diff=Math.abs(d.calActual-(d.calGoal||settings.calGoal));
+  card.classList.toggle('done',diff<=100);
+  if(diff<=100){st.className='cal-status good';st.textContent='✓ Within '+Math.round(diff)+' cal of goal';}
+  else if(diff<=300){st.className='cal-status close';st.textContent=Math.round(diff)+' cal from goal';}
+  else{st.className='cal-status bad';st.textContent=Math.round(diff)+' cal from goal';}
+}
+function adjustSleep(delta){
+  const d=getDay(TODAY);if(d.sleep===null)d.sleep=0;
+  d.sleep=Math.max(0,Math.min(12,Math.round((d.sleep+delta)*10)/10));
+  save();renderSleep(d.sleep);updateScore();
+}
+function renderSleep(hrs){
+  const card=document.getElementById('card-sleep');
+  if(hrs===null){document.getElementById('sleepVal').textContent='—';document.getElementById('sleepSub').textContent='Tap + / − to set hours slept';card.classList.remove('done');return;}
+  document.getElementById('sleepVal').textContent=hrs+'h';
+  const done=hrs>=8;card.classList.toggle('done',done);
+  document.getElementById('sleepSub').style.color=done?'var(--accent)':'var(--muted)';
+  document.getElementById('sleepSub').textContent=done?'✓ Goal reached (8+ hours)':(8-hrs).toFixed(1)+' more hours needed';
+}
+const WGLASS=250,WGOAL=3000,WCOUNT=12;
+function buildWaterTaps(){
+  const c=document.getElementById('waterTaps');c.innerHTML='';
+  for(let i=0;i<WCOUNT;i++){
+    const b=document.createElement('button');b.className='water-tap';b.id='wtap-'+i;b.textContent='250ml';
+    b.onclick=()=>{const d=getDay(TODAY);const f=Math.floor(d.water/WGLASS);if(i===f){d.water+=WGLASS;save();renderWater(d.water);updateScore();}};
+    c.appendChild(b);
+  }
+}
+function resetWater(){const d=getDay(TODAY);d.water=0;save();renderWater(0);updateScore();}
+function renderWater(ml){
+  document.getElementById('card-water').classList.toggle('done',ml>=WGOAL);
+  document.getElementById('waterFill').style.width=Math.min(100,Math.round(ml/WGOAL*100))+'%';
+  document.getElementById('waterMl').textContent=ml>=1000?(ml/1000).toFixed(1)+'L':ml+' ml';
+  const f=Math.floor(ml/WGLASS);
+  for(let i=0;i<WCOUNT;i++){const b=document.getElementById('wtap-'+i);if(b)b.classList.toggle('filled',i<f);}
+}
+function calcScore(d){
+  if(!d)return 0;let s=0;
+  if(d.run||d.rest)s++;
+  if(d.calActual!==null&&Math.abs(d.calActual-(d.calGoal||settings.calGoal))<=100)s++;
+  if(d.sleep!==null&&d.sleep>=8)s++;
+  if(d.water>=WGOAL)s++;
+  return s;
+}
+function updateScore(){
+  const d=getDay(TODAY);const s=calcScore(d);
+  const pill=document.getElementById('scorePill');
+  pill.textContent=s+' / 4';pill.classList.toggle('perfect',s===4);
+  if(s===4&&!celebDone){celebDone=true;setTimeout(()=>document.getElementById('celebration').classList.add('show'),400);}
+}
+
+// ---- LOAD METRICS ----
+function getSRPE(k){return data[k]?.runData?.load||0;}
+function getTRIMP(k){return data[k]?.runData?.trimp||0;}
+function getKm(k){return data[k]?.runData?.distance||0;}
+function getPuReps(k){const sets=data[k]?.pushups||[];return sets.reduce((a,b)=>a+b,0);}
+function avgLoad(fn,k,days){let s=0;for(let i=0;i<days;i++){const d=new Date(k);d.setDate(d.getDate()-i);s+=fn(d.toISOString().split('T')[0]);}return s/days;}
+
+// ---- PROGRESS ----
+function renderProgress(){
+  const srpeATL=avgLoad(getSRPE,TODAY,7),srpeCTL=avgLoad(getSRPE,TODAY,28);
+  const trimpATL=avgLoad(getTRIMP,TODAY,7),trimpCTL=avgLoad(getTRIMP,TODAY,28);
+  const acwr=srpeCTL>0?srpeATL/srpeCTL:0;
+  document.getElementById('statSRPE_ATL').textContent=Math.round(srpeATL);
+  document.getElementById('statSRPE_CTL').textContent=Math.round(srpeCTL);
+  document.getElementById('statTRIMP_ATL').textContent=trimpATL>0?Math.round(trimpATL):'—';
+  document.getElementById('statTRIMP_CTL').textContent=trimpCTL>0?Math.round(trimpCTL):'—';
+  const hasTRIMP=Object.values(data).some(d=>d.runData?.trimp);
+  document.getElementById('trimpATLCard').classList.toggle('dim',!hasTRIMP);
+  document.getElementById('trimpCTLCard').classList.toggle('dim',!hasTRIMP);
+
+  const acwrEl=document.getElementById('acwrVal');const acwrLab=document.getElementById('acwrLabel');
+  acwrEl.textContent=srpeCTL>0?acwr.toFixed(2):'—';
+  let acol='var(--muted)',atxt='No training data yet';
+  if(srpeCTL>0){if(acwr<0.8){acol='var(--blue)';atxt='Under-trained — increase load gradually';}else if(acwr<=1.3){acol='var(--accent)';atxt='✓ Optimal zone — keep building';}else if(acwr<=1.5){acol='var(--warn)';atxt='⚠ Caution — monitor closely';}else{acol='var(--fail)';atxt='⚠ High injury risk — reduce load';}}
+  acwrEl.style.color=acol;acwrLab.textContent=atxt;acwrLab.style.color=acol;
+  document.getElementById('acwrMarker').style.left=(srpeCTL>0?Math.min(100,Math.max(0,(acwr/2)*100)):50)+'%';
+
+  const now=new Date();const l28=[],t28=[],l28l=[],srpeATLarr=[],trimpATLarr=[];
+  for(let i=27;i>=0;i--){
+    const d=new Date(now);d.setDate(d.getDate()-i);const k=d.toISOString().split('T')[0];
+    l28.push(getSRPE(k));t28.push(getTRIMP(k));
+    srpeATLarr.push(Math.round(avgLoad(getSRPE,k,7)));
+    trimpATLarr.push(Math.round(avgLoad(getTRIMP,k,7)));
+    l28l.push(i%7===0?['Su','Mo','Tu','We','Th','Fr','Sa'][new Date(now.getFullYear(),now.getMonth(),now.getDate()-i).getDay()]:'');
+  }
+  if(loadChart)loadChart.destroy();
+  loadChart=new Chart(document.getElementById('loadChart').getContext('2d'),{
+    data:{labels:l28l,datasets:[
+      {type:'bar',label:'sRPE',data:l28,backgroundColor:'rgba(63,185,80,0.45)',borderRadius:3,borderSkipped:false,order:2},
+      {type:'bar',label:'TRIMP',data:t28,backgroundColor:'rgba(56,139,253,0.45)',borderRadius:3,borderSkipped:false,order:3},
+      {type:'line',label:'sRPE ATL',data:srpeATLarr,borderColor:'#3fb950',borderWidth:2,pointRadius:0,tension:0.4,borderDash:[4,3],order:1},
+      {type:'line',label:'TRIMP ATL',data:trimpATLarr,borderColor:'#388bfd',borderWidth:2,pointRadius:0,tension:0.4,borderDash:[4,3],order:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#7d8590',font:{size:11},boxWidth:12,padding:8}}},
+      scales:{y:{min:0,ticks:{color:'#7d8590',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'},border:{display:false}},x:{ticks:{color:'#7d8590',font:{size:10}},grid:{display:false},border:{display:false}}}}
+  });
+
+  // Divergence
+  const divSessions=Object.keys(data).filter(k=>data[k].runData?.trimp).sort().reverse().slice(0,10).reverse();
+  const divEl=document.getElementById('divSessions');divEl.innerHTML='';
+  const noData=document.getElementById('divNoData');const divInsight=document.getElementById('divInsight');
+  if(!divSessions.length){noData.style.display='block';divInsight.innerHTML='';}
+  else{
+    noData.style.display='none';
+    const maxL=Math.max(...divSessions.map(k=>Math.max(getSRPE(k),getTRIMP(k))),1);
+    const dns=['Su','Mo','Tu','We','Th','Fr','Sa'];const mns=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    for(const k of divSessions){
+      const srpe=getSRPE(k),trimp=getTRIMP(k);
+      const sh=Math.round((srpe/maxL)*52),th=Math.round((trimp/maxL)*52);
+      const p=k.split('-');const dt=new Date(+p[0],+p[1]-1,+p[2]);
+      const wrap=document.createElement('div');wrap.className='div-session-wrap';
+      wrap.innerHTML=`<div class="div-bar-pair"><div class="div-bar srpe" style="height:${sh}px"></div><div class="div-bar trimp" style="height:${th}px"></div></div><div class="div-date">${dns[dt.getDay()]+' '+dt.getDate()}</div>`;
+      divEl.appendChild(wrap);
+    }
+    const latest=divSessions[divSessions.length-1];
+    if(latest){
+      const r=data[latest].runData;const ratio=r.trimp/r.load;
+      const allR=divSessions.map(k=>getTRIMP(k)/getSRPE(k));
+      const base=allR.reduce((a,b)=>a+b,0)/allR.length;
+      const dev=(ratio-base)/base;
+      let cls='good',title='Metrics aligned',body='sRPE and TRIMP are tracking closely — HR and perceived effort consistent with baseline.';
+      if(dev>0.20){cls='alert';title='HR elevated vs RPE';body='Heart rate higher than perceived effort suggests. Possible: accumulated fatigue, heat stress, minor illness, or dehydration. Consider easy recovery tomorrow.';}
+      else if(dev<-0.20){cls='warn';title='RPE elevated vs HR';body='Perceived effort higher than HR suggests. Possible: mental fatigue, sleep debt, or accumulated psychological load. HR is responding normally.';}
+      divInsight.innerHTML=`<div class="div-insight ${cls}"><div class="div-insight-title">${title}</div><div class="div-insight-text">${body}</div></div>`;
+    }
+  }
+
+  // Push-up progress
+  let puWeek=0,puPR=0;
+  for(let i=0;i<7;i++){const d=new Date(now);d.setDate(d.getDate()-i);puWeek+=getPuReps(d.toISOString().split('T')[0]);}
+  Object.keys(data).forEach(k=>{const r=getPuReps(k);if(r>puPR)puPR=r;});
+  document.getElementById('puStatWeek').textContent=puWeek||'—';
+  document.getElementById('puStatPR').textContent=puPR||'—';
+
+  // Push-up weekly chart
+  const puWkData=[],puWkLabels=[];
+  for(let w=7;w>=0;w--){
+    let reps=0;for(let dd=0;dd<7;dd++){const dt=new Date(now);dt.setDate(dt.getDate()-(w*7+dd));reps+=getPuReps(dt.toISOString().split('T')[0]);}
+    puWkData.push(reps);
+    const ws=new Date(now);ws.setDate(ws.getDate()-w*7);
+    const mns2=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    puWkLabels.push(ws.getDate()+' '+mns2[ws.getMonth()]);
+  }
+  if(puChart)puChart.destroy();
+  puChart=new Chart(document.getElementById('puChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:puWkLabels,datasets:[{data:puWkData,backgroundColor:puWkData.map((_,i)=>i===7?'rgba(240,136,62,0.85)':'rgba(240,136,62,0.4)'),borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' reps'}}},
+      scales:{y:{min:0,ticks:{color:'#7d8590',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'},border:{display:false}},x:{ticks:{color:'#7d8590',font:{size:10}},grid:{display:false},border:{display:false}}}}
+  });
+
+  // Push-up log
+  const puLog=document.getElementById('puLogList');puLog.innerHTML='';
+  const mns=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dns=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const puDates=Object.keys(data).filter(k=>(data[k].pushups||[]).length>0).sort().reverse().slice(0,10);
+  if(!puDates.length){puLog.innerHTML='<p style="color:var(--muted);font-size:14px;padding:12px 0 16px">No push-ups logged yet.</p>';}
+  for(const dt of puDates){
+    const sets=data[dt].pushups||[];const total=sets.reduce((a,b)=>a+b,0);
+    const p=dt.split('-');const dobj=new Date(+p[0],+p[1]-1,+p[2]);
+    const lbl=dns[dobj.getDay()]+' '+dobj.getDate()+' '+mns[dobj.getMonth()];
+    const item=document.createElement('div');item.className='pu-log-item';
+    item.innerHTML=`<div class="pu-log-top"><span class="pu-log-date">${lbl}</span><span class="pu-log-total">${total} reps · ${sets.length} sets</span></div><div class="pu-log-sets">${sets.map((r,i)=>`<span class="pu-log-chip">Set ${i+1}: ${r}</span>`).join('')}</div>`;
+    puLog.appendChild(item);
+  }
+
+  // Vol chart
+  const wkm=[],wkl=[];
+  for(let w=7;w>=0;w--){
+    let km=0;for(let dd=0;dd<7;dd++){const dt=new Date(now);dt.setDate(dt.getDate()-(w*7+dd));km+=getKm(dt.toISOString().split('T')[0]);}
+    wkm.push(Math.round(km*10)/10);
+    const ws=new Date(now);ws.setDate(ws.getDate()-w*7);
+    const mns2=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    wkl.push(ws.getDate()+' '+mns2[ws.getMonth()]);
+  }
+  if(volChart)volChart.destroy();
+  volChart=new Chart(document.getElementById('volChart').getContext('2d'),{
+    type:'bar',data:{labels:wkl,datasets:[{data:wkm,backgroundColor:wkm.map((_,i)=>i===7?'rgba(63,185,80,0.85)':'rgba(63,185,80,0.4)'),borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' km'}}},
+      scales:{y:{min:0,ticks:{color:'#7d8590',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'},border:{display:false}},x:{ticks:{color:'#7d8590',font:{size:10}},grid:{display:false},border:{display:false}}}}
+  });
+
+  // Run log
+  const rl=document.getElementById('runLogList');rl.innerHTML='';
+  const rDates=Object.keys(data).filter(d=>data[d].runData||data[d].rest).sort().reverse().slice(0,14);
+  if(!rDates.length){rl.innerHTML='<p style="color:var(--muted);font-size:14px;padding:12px 0">No runs logged yet.</p>';}
+  for(const dt of rDates){
+    const d=data[dt];const p=dt.split('-');const dobj=new Date(+p[0],+p[1]-1,+p[2]);
+    const lbl=dns[dobj.getDay()]+' '+dobj.getDate()+' '+mns[dobj.getMonth()];
+    const row=document.createElement('div');row.className='run-log-item';
+    if(d.rest){row.innerHTML=`<span class="run-log-date">${lbl}</span><div class="run-log-details"><span class="run-log-rest">Rest / recovery</span></div>`;}
+    else if(d.runData){
+      const r=d.runData;const pace=r.distance>0?r.duration/r.distance:0;
+      const pm=Math.floor(pace);const ps=Math.round((pace-pm)*60).toString().padStart(2,'0');
+      const hrTxt=r.hrAvg?` · ${r.hrAvg}bpm`:'';
+      row.innerHTML=`<span class="run-log-date">${lbl}</span><div class="run-log-details"><div class="run-log-main">${r.distance}km · ${r.duration}min</div><div class="run-log-sub">${pm}:${ps}/km · RPE ${r.rpe}${hrTxt}</div></div><div class="run-log-loads"><span class="run-log-load-srpe">${r.load} AU</span>${r.trimp?`<span class="run-log-load-trimp">${r.trimp} TRIMP</span>`:''}</div>`;
+    }
+    rl.appendChild(row);
+  }
+
+  // Habits history
+  const hl=document.getElementById('historyList');hl.innerHTML='';
+  const ic=['🏃','🍽','🌙','💧'];
+  for(let i=6;i>=0;i--){
+    const dt2=new Date(now);dt2.setDate(dt2.getDate()-i);const k2=dt2.toISOString().split('T')[0];
+    const d2=data[k2]||{};const sc2=calcScore(d2);
+    const lbl2=dns[dt2.getDay()]+' '+dt2.getDate()+' '+mns[dt2.getMonth()];
+    const st2=[d2.run||d2.rest,d2.calActual!==null&&Math.abs(d2.calActual-(d2.calGoal||settings.calGoal))<=100,d2.sleep!==null&&d2.sleep>=8,d2.water>=WGOAL];
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)';
+    row.innerHTML=`<span style="font-size:12px;color:var(--muted);width:80px;flex-shrink:0">${lbl2}</span><div style="display:flex;gap:6px;flex:1">${st2.map((s,ii)=>`<span style="font-size:15px;opacity:${s?1:0.2}">${ic[ii]}</span>`).join('')}</div><span style="font-size:13px;font-weight:700;color:${sc2===4?'var(--accent)':sc2>=2?'var(--warn)':'var(--muted)'}">${sc2}/4</span>`;
+    hl.appendChild(row);
+  }
+}
+
+function showView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.getElementById('nav-'+v).classList.add('active');
+  if(v==='progress')renderProgress();
+}
+function openSettings(){document.getElementById('modalBg').classList.add('show');}
+function closeSettings(){document.getElementById('modalBg').classList.remove('show');}
+function saveSettings(){
+  settings.calGoal=parseFloat(document.getElementById('settingsCalGoal').value)||2000;
+  settings.hrMax=parseInt(document.getElementById('settingsHRMax').value)||185;
+  settings.hrRest=parseInt(document.getElementById('settingsHRRest').value)||55;
+  settings.puGoal=parseInt(document.getElementById('settingsPuGoal').value)||100;
+  saveSett();const d=getDay(TODAY);d.calGoal=settings.calGoal;
+  document.getElementById('calGoalInput').value=settings.calGoal;
+  save();renderCalories(d);renderPushups();updateScore();closeSettings();
+}
+function injectManifest(){
+  const m={name:"Streak",short_name:"Streak",start_url:"./",display:"standalone",background_color:"#0d1117",theme_color:"#0d1117",icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='120' fill='%230d1117'/%3E%3Ctext x='256' y='340' text-anchor='middle' font-size='280'%3E%F0%9F%8F%83%3C/text%3E%3C/svg%3E",sizes:"any",type:"image/svg+xml"}]};
+  const link=document.createElement('link');link.rel='manifest';link.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));
+  document.head.appendChild(link);
+}
+buildWaterTaps();init();
+</script>
+</body>
+</html>
